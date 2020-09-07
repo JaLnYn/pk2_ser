@@ -47,19 +47,20 @@ CREATE TABLE room(
 );
 
 CREATE TABLE property_pic(
-    property_id BIGSERIAL NOT NULL PRIMARY KEY,
-    img_id BIGSERIAL
+    prop_id BIGSERIAL NOT NULL PRIMARY KEY,
+    img_id BIGSERIAL NOT NULL
 );
 
 CREATE TABLE room_pic(
-    property_id BIGSERIAL NOT NULL PRIMARY KEY,
-    img_id BIGSERIAL
+    room_id BIGSERIAL NOT NULL PRIMARY KEY,
+    img_id BIGSERIAL NOT NULL
 );
 
 CREATE TABLE img(
     img_id BIGSERIAL NOT NULL PRIMARY KEY,
-    owner_id BIGSERIAL NOT NULL,
-    img_data BYTEA NOT NULL
+    owner_id BIGSERIAL,
+    sent_to BIGSERIAL,
+    img_loc VARCHAR(128)
 );
 
 CREATE TABLE favorites (

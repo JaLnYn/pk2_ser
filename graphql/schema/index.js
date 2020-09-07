@@ -22,8 +22,9 @@ type AuthData {
 
 type Room {
   room_id: ID!
-  parent_property: ID
+  parent_prop_id: ID
   sqr_area: Float!
+  Images: [Image!]
 }
 
 type Property {
@@ -45,6 +46,7 @@ type Property {
   sqr_area: Float!
   preferred_unit: String!
   rooms: [Room!]
+  Images: [Image!]
 }
 
 type Favorites {
@@ -54,12 +56,19 @@ type Favorites {
   property: Property!
 }
 
-type RootQuery {
-  login(email: String!, password: String!): AuthData!
-  getFavorites(start_index: Int!,end_index: Int!): [Favorites!]
+type Image{
+  img_id: ID!,
+  img_loc: String!
 }
 
+type RootQuery {
+  checkAccount(email: String!, password: String!): Boolean!
+  login(email: String!, password: String!): AuthData!
+  getFavorites(start_index: Int!,end_index: Int!): [Favorites!]
+  getMyProperty(start_index: Int!, end_index: Int): [Property!]
+  getMyImages: [Image]!
 
+}
 
 type RootMutation {
   signup(email: String!, password: String!, f_name: String!, l_name: String!, gender: String!, user_type: String!, date_of_birth: String!): User
@@ -67,7 +76,14 @@ type RootMutation {
   deleteProperty(prop_id: ID!): Boolean!
   decideProperty(prop_id: ID!, liked: Boolean!): Boolean!
   unmatchProperty(prop_id: ID!): Boolean!
+  createRoom(parent_prop_id: ID!, sqr_area: Float!): Room!
+  deleteRoom(room_id: ID!): Boolean!
+  addImageToRoom(img_id: ID!, room_id: ID): Boolean
+  addImageToProp(img_id: ID!, prop_id: ID): Boolean
+  rmImageToRoom(img_id: ID!, room_id: ID): Boolean
+  rmImageToProp(img_id: ID!, prop_id: ID): Boolean
 }
+
 schema {
   query: RootQuery
   mutation: RootMutation

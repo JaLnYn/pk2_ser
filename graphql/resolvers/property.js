@@ -3,25 +3,56 @@ const jwt = require('jsonwebtoken');
 const {db} = require('../../dbConfig');
 const {mergeUserAndProperty, fav_formate_date} = require('../helpers')
 
+async function prop_append_room(property){
+    try {
+        let resp = await db.query('SELECT * FROM room WHERE parent_prop_id = $1',[property.prop_id]);
+
+        
+    } catch(err) {
+        throw err
+    }
+}
+
+async function handleProp(prop){
+    
+   
+    let resp2 = await db.query('SELECT * FROM users WHERE id = $1', [prop.landlord]);
+    if (resp2.rows.length != 1){
+        throw new Error ('property landlord not found')
+    }
+    
+    prop = mergeUserAndProperty(prop, resp2.rows[0])
+    let resp3 = await db.query('SELECT * FROM room WHERE parent_prop_id = $1', [prop.prop_id]);
+    let resp4 = await db.query('SELECT * FROM property_pic INNER JOIN img ON property_pic.img_id = img.img_id WHERE prop_id = $1', [prop.prop_id]);
+    
+    prop.Images = resp4.rows 
+
+    prop.rooms = resp3.rows
+    for (j = 0; j < resp3.rows.length; j++){
+        let resp5 = await db.query('SELECT * FROM room_pic INNER JOIN img ON room_pic.img_id = img.img_id WHERE room_id = $1', [resp3.rows[j].room_id])
+        prop.rooms[j].Images = resp5.rows   
+    }
+    return prop
+}
 
 async function fav_append_prop(favs){
-    for (i = 0; i < favs.length; i++){
-        let resp = await db.query('SELECT * FROM property WHERE prop_id = $1', [favs[i].prop_id]);
-        if (resp.rows.length != 1){
-            throw new Error('property not found')
+    try{
+        for (i = 0; i < favs.length; i++){
+            let resp = await db.query('SELECT * FROM property WHERE prop_id = $1', [favs[i].prop_id]);
+            if (resp.rows.length != 1){
+                throw new Error('property not found')
+            }
+            favs[i].property = await handleProp(resp.rows[0])
+            favs[i] = fav_formate_date(favs[i])
         }
-        let resp2 = await db.query('SELECT * FROM users WHERE id = $1', [resp.rows[0].landlord]);
-        if (resp2.rows.length != 1){
-            throw new Error ('property landlord not found')
-        }
-        favs[i].property = mergeUserAndProperty(resp.rows[0], resp2.rows[0])
-        favs[i] = fav_formate_date(favs[i])
+    }catch (err){
+        throw err
     }
+    
     return favs
 }
 
 module.exports = {
-    
     createProperty: async (args, req) => {
     
         if (!req.isAuth) {
@@ -142,17 +173,207 @@ module.exports = {
         }
         const getFav = 'SELECT * FROM favorites WHERE user_id = $1 ORDER BY decision_date'
         const valFav = [req.userId]
-
         try {
-            let resp = await db.query(getFav, valFav)            
+            let resp = await db.query(getFav, valFav);
             return fav_append_prop(resp.rows.slice(args.start_index, args.end_index))
         } catch (err) {
             console.log(err);
             throw err;
         }
     },
-    
+    getMyProperty: async (args, req) => {
+        if (!req.isAuth){
+            throw new Error('Unauthenticated!');
+        }
+        const getFav = 'SELECT * FROM property WHERE landlord = $1 ORDER BY prop_id'
+        const valFav = [req.userId]
+        try {
+            let resp = await db.query(getFav, valFav);
+            resp.rows = resp.rows.slice(args.start_index, args.end_index)
+            for (i = 0; i < resp.rows.length; i++){
+                resp.rows[i] = await handleProp(resp.rows[i]);
+            }
+            return resp.rows
+        } catch (err) {
+            console.log(err);
+            throw err;
+        }
+    },
+    createRoom: async (args, req) => {
+        if (!req.isAuth){
+            throw new Error('Unauthenticated!');
+        }
 
+        try {
+            let resp2 = await db.query('SELECT * FROM property WHERE prop_id = $1', [args.parent_prop_id]);
+            if (resp2.rowCount < 1){
+                throw new Error("this property does not exist")
+            }
+            if (resp2.rows[0].landlord != req.isAuth){
+                throw new Error("this property does not belong to you.")
+            }
+            let resp = await db.query("INSERT INTO room(parent_prop_id, sqr_area) VALUES($1, $2) RETURNING *", [args.parent_prop_id, args.sqr_area])
+            if (resp.rowCount != 1){
+                throw new Error("failed")
+            }else{
+                return resp.rows[0];
+            } 
+
+        }catch (err){
+            console.log(err);
+            throw err;
+        }
+
+    },
+    deleteRoom: async (args, req) => {
+        if (!req.isAuth){
+            throw new Error('Unauthenticated!');
+        }
+        try {
+            let resp = await db.query("DELETE FROM room WHERE room_id = $1", [args.room_id])
+            if (resp.rowCount != 1){
+                throw new Error("failed")
+            }else{
+                return true;
+            } 
+
+        }catch (err){
+            console.log(err);
+            throw err;
+        }
+    },  
+    addImageToRoom: async (args, req)=>{
+        if (!req.isAuth){
+            throw new Error('Unauthenticated!');
+        }
+
+        try {
+            let resp2 = await db.query('SELECT * FROM room WHERE room_id = $1', [args.room_id]);
+            if (resp2.rowCount < 1){
+                throw new Error("this room does not exist")
+            }
+            let resp3 = await db.query('SELECT * FROM property WHERE prop_id = $1', [resp2.rows[0].parent_prop_id]);
+            if (resp3.rowCount < 1){
+                throw new Error("this room does not exist")
+            }
+            if (resp3.rows[0].landlord != req.isAuth){
+                throw new Error("this property does not belong to you.")
+            }
+            let resp10 = await db.query('SELECT * FROM img WHERE img_id = $1', [args.img_id])
+            if (resp10.rowCount < 1 || resp10.rows[0].owner_id != req.userId){
+                throw new Error("you can't use this image")
+            }
+            let resp = await db.query("INSERT INTO room_pic(room_id, img_id) VALUES($1, $2) RETURNING *", [args.room_id, args.img_id])
+            if (resp.rowCount != 1){
+                throw false;
+            }else{
+                return true;
+            } 
+
+        }catch (err){
+            console.log(err);
+            throw err;
+        }
+    },
+    addImageToProp: async (args, req)=>{
+        if (!req.isAuth){
+            throw new Error('Unauthenticated!');
+        }
+
+        try {
+            let resp2 = await db.query('SELECT * FROM property WHERE prop_id = $1', [args.prop_id]);
+            if (resp2.rowCount < 1){
+                throw new Error("this room does not exist")
+            }
+            if (resp2.rows[0].landlord != req.isAuth){
+                throw new Error("this property does not belong to you.")
+            }
+            let resp10 = await db.query('SELECT * FROM img WHERE img_id = $1', [args.img_id])
+            if (resp10.rowCount < 1 || resp10.rows[0].owner_id != req.userId){
+                throw new Error("you can't use this image")
+            }
+            let resp = await db.query("INSERT INTO property_pic(prop_id, img_id) VALUES($1, $2) RETURNING *", [args.prop_id, args.img_id])
+            if (resp.rowCount != 1){
+                throw new Error("failed");
+            }else{
+
+            } 
+            return true
+
+        }catch (err){
+            console.log(err);
+            throw err;
+        }
+    },
+    rmImageToRoom:async (args, req)=>{
+        if (!req.isAuth){
+            throw new Error('Unauthenticated!');
+        }
+
+        try {
+            let resp2 = await db.query('SELECT * FROM room WHERE room_id = $1', [args.room_id]);
+            if (resp2.rowCount < 1){
+                throw new Error("this room does not exist")
+            }
+            let resp3 = await db.query('SELECT * FROM property WHERE prop_id = $1', [resp2.rows[0].parent_prop_id]);
+            if (resp3.rowCount < 1){
+                throw new Error("this room does not exist")
+            }
+            if (resp3.rows[0].landlord != req.isAuth){
+                throw new Error("this property does not belong to you.")
+            }
+            let resp = await db.query("DELETE FROM room_pic WHERE room_id = $1 AND img_id = $2", [args.room_id, args.img_id])
+            if (resp.rowCount != 1){
+                return false;
+            }else{
+                return true;
+            } 
+
+        }catch (err){
+            console.log(err);
+            throw err;
+        }
+    },
+    rmImageToProp:async (args, req)=>{
+        if (!req.isAuth){
+            throw new Error('Unauthenticated!');
+        }
+
+        try {
+            let resp2 = await db.query('SELECT * FROM property WHERE prop_id = $1', [args.prop_id]);
+            if (resp2.rowCount < 1){
+                throw new Error("this room does not exist")
+            }
+            if (resp2.rows[0].landlord != req.isAuth){
+                throw new Error("this property does not belong to you.")
+            }
+            let resp = await db.query("DELETE FROM property_pic WHERE prop_id=$1 AND img_id=$2", [args.prop_id, args.img_id])
+            if (resp.rowCount != 1){
+                return false;
+            }else{
+                return true;
+            } 
+
+        }catch (err){
+            console.log(err);
+            throw err;
+        }
+    },
+    getMyImages: async (args, req) => {
+        if (!req.isAuth){
+            throw new Error('Unauthenticated!');
+        }
+
+        try {
+            let resp = await db.query('SELECT * FROM img WHERE owner_id = $1', [req.userId])
+            return resp.rows
+        }catch (err){
+            console.log(err);
+            throw err;
+        }
+    },
+    
+    
 
     // getProperty: async (args, req) => {
     //     if (!req.isAuth) {

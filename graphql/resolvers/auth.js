@@ -4,6 +4,18 @@ const {db} = require('../../dbConfig');
 const {dbToGQL_User} = require('../helpers')
 
 module.exports = {
+    checkAccount: async(args) => {
+        try {
+            let resp = await db.query('SELECT * FROM users WHERE email = $1', [args.email])
+            if (resp.rows.length >= 1){
+                throw new Error('User exists already.')
+            }
+            // we can check password here
+        }catch(err){
+            throw err;
+        }
+        return true;
+    },
     signup: async (args) => {
         try {
 
@@ -15,11 +27,8 @@ module.exports = {
             const hashedPassword = await bcrypt.hash(args.password, 12);
             const text = 'INSERT INTO users(email, password, f_name, l_name, gender, user_type, date_of_birth) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING *'
             
-
-            
             const values = [args.email, hashedPassword, args.f_name, args.l_name, args.gender, args.user_type, args.date_of_birth]
 
-            
             res = await db.query(text, values)
             if (res.rows.length > 1){
                 throw new Error('Internal db error when adding user to db');
