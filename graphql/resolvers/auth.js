@@ -4,6 +4,12 @@ const {db} = require('../../dbConfig');
 const {dbToGQL_User} = require('../helpers')
 
 module.exports = {
+    checkAuth: async (args, req) => {
+        if(!req.isAuth){
+            return false;
+        }
+        return true;
+    },
     checkAccount: async(args) => {
         try {
             let resp = await db.query('SELECT * FROM users WHERE email = $1', [args.email])
@@ -26,7 +32,15 @@ module.exports = {
             }
             const hashedPassword = await bcrypt.hash(args.password, 12);
             const text = 'INSERT INTO users(email, password, f_name, l_name, gender, user_type, date_of_birth) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING *'
-            
+            if(args.user_type != 'T' && args.user_type != 'L'){
+                throw new Error("must select tenent or landlord")
+            }
+ 
+            if(args.gender != 'M' && args.gender != 'O' && args.gender != 'F'){
+                throw new Error("must select a gender")
+            }
+
+
             const values = [args.email, hashedPassword, args.f_name, args.l_name, args.gender, args.user_type, args.date_of_birth]
 
             res = await db.query(text, values)
@@ -63,7 +77,7 @@ module.exports = {
             expiresIn: '1h'
         }
         );
-        return { userId: user.id, token: token, tokenExpiration: 1 };
+        return { userId: user.id, token: token, tokenExpiration: 1, user_type: user.user_type};
         
     }
 };

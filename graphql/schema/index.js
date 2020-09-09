@@ -18,6 +18,7 @@ type AuthData {
   userId: ID!
   token: String!
   tokenExpiration: Int!
+  user_type: String!
 }
 
 type Room {
@@ -62,6 +63,7 @@ type Image{
 }
 
 type RootQuery {
+  checkAuth: Boolean!
   checkAccount(email: String!, password: String!): Boolean!
   login(email: String!, password: String!): AuthData!
   getFavorites(start_index: Int!,end_index: Int!): [Favorites!]
