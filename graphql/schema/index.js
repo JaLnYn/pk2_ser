@@ -13,6 +13,8 @@ type User {
   date_of_birth: String
   registration_date: String
   bio: String
+  profile_pic: ID
+  img_loc: String
 }
 type AuthData {
   userId: ID!
@@ -63,6 +65,7 @@ type Image{
 }
 
 type RootQuery {
+  getUser(id: ID!): User!
   checkAuth: Boolean!
   checkAccount(email: String!, password: String!): Boolean!
   login(email: String!, password: String!): AuthData!
@@ -74,6 +77,7 @@ type RootQuery {
 
 type RootMutation {
   signup(email: String!, password: String!, f_name: String!, l_name: String!, gender: String!, user_type: String!, date_of_birth: String!): User
+  updateUser(user_type: String, bio: String): User
   createProperty(prop_address: String!, prop_city: String!, prop_province: String!, prop_country: String!, longitude: Float!, latitude: Float!, info: String!, price: Int!, bedrooms: Int!, utils: Boolean!, parking: Int!, furnished: Boolean!, bathroom: Int!, sqr_area: Float!, preferred_unit: String!): Property
   deleteProperty(prop_id: ID!): Boolean!
   decideProperty(prop_id: ID!, liked: Boolean!): Boolean!

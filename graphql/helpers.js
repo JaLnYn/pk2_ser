@@ -1,3 +1,4 @@
+
 function formatDate(d) {
     if (d == null){
         return null

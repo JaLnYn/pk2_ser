@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const {db} = require('../../dbConfig');
 const {mergeUserAndProperty, fav_formate_date} = require('../helpers')
+const global = require('../../global')
 
 async function prop_append_room(property){
     try {
@@ -56,7 +57,7 @@ module.exports = {
     createProperty: async (args, req) => {
     
         if (!req.isAuth) {
-            throw new Error('Unauthenticated!');
+            throw new Error(global.unAuth);
         }
         
         const text = 'INSERT INTO property(prop_address , prop_city , prop_province , prop_country , longitude , latitude , landlord , info , price , bedrooms , utils , parking , furnished , bathroom , sqr_area , preferred_unit) VALUES($1, $2, $3, $4, $5, $6, $7, $8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *'
@@ -82,7 +83,7 @@ module.exports = {
     },
     deleteProperty: async (args, req) => {
         if (!req.isAuth) {
-            throw new Error('Unauthenticated!');
+            throw new Error(global.unAuth);
         }
         const text = 'DELETE FROM property WHERE prop_id = $1 AND landlord = $2'
         const values = [args.prop_id , req.userId]
@@ -105,7 +106,7 @@ module.exports = {
     },
     decideProperty: async (args, req) => {
         if (!req.isAuth){
-            throw new Error('Unauthenticated!');
+            throw new Error(global.unAuth);
         }
         
 
@@ -151,7 +152,7 @@ module.exports = {
     },
     unmatchProperty: async (args, req) => {
         if (!req.isAuth){
-            throw new Error('Unauthenticated!');
+            throw new Error(global.unAuth);
         }
         const text = 'UPDATE favorites SET unmatched_date = CURRENT_TIMESTAMP WHERE user_id = $1 AND prop_id = $2'
         const values = [req.userId, args.prop_id]
@@ -169,7 +170,7 @@ module.exports = {
     },
     getFavorites: async (args, req) => {
         if (!req.isAuth){
-            throw new Error('Unauthenticated!');
+            throw new Error(global.unAuth);
         }
         const getFav = 'SELECT * FROM favorites WHERE user_id = $1 ORDER BY decision_date'
         const valFav = [req.userId]
@@ -183,7 +184,7 @@ module.exports = {
     },
     getMyProperty: async (args, req) => {
         if (!req.isAuth){
-            throw new Error('Unauthenticated!');
+            throw new Error(global.unAuth);
         }
         const getFav = 'SELECT * FROM property WHERE landlord = $1 ORDER BY prop_id'
         const valFav = [req.userId]
@@ -201,7 +202,7 @@ module.exports = {
     },
     createRoom: async (args, req) => {
         if (!req.isAuth){
-            throw new Error('Unauthenticated!');
+            throw new Error(global.unAuth);
         }
 
         try {
@@ -227,7 +228,7 @@ module.exports = {
     },
     deleteRoom: async (args, req) => {
         if (!req.isAuth){
-            throw new Error('Unauthenticated!');
+            throw new Error(global.unAuth);
         }
         try {
             let resp = await db.query("DELETE FROM room WHERE room_id = $1", [args.room_id])
@@ -244,7 +245,7 @@ module.exports = {
     },  
     addImageToRoom: async (args, req)=>{
         if (!req.isAuth){
-            throw new Error('Unauthenticated!');
+            throw new Error(global.unAuth);
         }
 
         try {
@@ -277,7 +278,7 @@ module.exports = {
     },
     addImageToProp: async (args, req)=>{
         if (!req.isAuth){
-            throw new Error('Unauthenticated!');
+            throw new Error(global.unAuth);
         }
 
         try {
@@ -307,7 +308,7 @@ module.exports = {
     },
     rmImageToRoom:async (args, req)=>{
         if (!req.isAuth){
-            throw new Error('Unauthenticated!');
+            throw new Error(global.unAuth);
         }
 
         try {
@@ -336,7 +337,7 @@ module.exports = {
     },
     rmImageToProp:async (args, req)=>{
         if (!req.isAuth){
-            throw new Error('Unauthenticated!');
+            throw new Error(global.unAuth);
         }
 
         try {
@@ -361,7 +362,7 @@ module.exports = {
     },
     getMyImages: async (args, req) => {
         if (!req.isAuth){
-            throw new Error('Unauthenticated!');
+            throw new Error(global.unAuth);
         }
 
         try {
