@@ -26,5 +26,16 @@ app.post('/upload', upload);
 app.get("/image", im_func);
 // change this to normal serve
 
-app.listen(4000, () => console.log('Now browse to localhost:4000/graphql'));
+//app.listen(4000, () => console.log('Now browse to localhost:4000/graphql'));
 
+server = require('http').createServer(app);
+
+const io = require('socket.io')(server);
+
+
+io.on('connection', client => {
+  client.on('event', data => { console.log("person connected") });
+  client.on('disconnect', () => { console.log("person disconnected") });
+});
+
+server.listen(4000, () => console.log('Now browse to localhost:4000/graphql'))

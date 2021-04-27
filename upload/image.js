@@ -9,7 +9,6 @@ module.exports = async (req, res) => {
         res.end('Unauthenticated!')
         return
     }
-
     // get from database first
 
     const queryObject = url.parse(req.url,true).query;
@@ -19,6 +18,7 @@ module.exports = async (req, res) => {
             res.end("incorrect amount of images found please reupload")
             return
         }
+		//console.log(queryObject.img_loc)
         if (req.userId == resp.rows[0].sent_to || resp.rows[0].sent_to == 0 || resp.rows[0].owner_id == req.userId){
             // you are authenticated 
             res.sendFile(path.join(__dirname, "../public/uploads/" + queryObject.img_loc))

@@ -16,7 +16,6 @@ async function prop_append_room(property){
 
 async function handleProp(prop){
     
-   
     let resp2 = await db.query('SELECT * FROM users WHERE id = $1', [prop.landlord]);
     if (resp2.rows.length != 1){
         throw new Error ('property landlord not found')
@@ -60,12 +59,11 @@ module.exports = {
             throw new Error(global.unAuth);
         }
         
-        const text = 'INSERT INTO property(prop_address , prop_city , prop_province , prop_country , longitude , latitude , landlord , info , price , bedrooms , utils , parking , furnished , bathroom , sqr_area , preferred_unit) VALUES($1, $2, $3, $4, $5, $6, $7, $8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *'
-        const values = [args.prop_address , args.prop_city , args.prop_province , args.prop_country , args.longitude , args.latitude , req.userId, args.info , args.price , args.bedrooms , args.utils , args.parking , args.furnished , args.bathroom , args.sqr_area , args.preferred_unit]
+        const text = 'INSERT INTO property(apt_num, prop_address , prop_city , prop_province , prop_country , longitude , latitude , landlord , info , price , bedrooms , utils , parking , furnished , bathroom , sqr_area , avail_on) VALUES($1, $2, $3, $4, $5, $6, $7, $8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *'
+        const values = [args.apt_num, args.prop_address , args.prop_city , args.prop_province , args.prop_country , args.longitude.toFixed(5) , args.latitude.toFixed(5) , req.userId, "" , args.price , args.bedrooms , args.utils , args.parking , args.furnished , args.bathroom , args.sqr_area.toFixed(2) , args.avail_on]
         const usertxt = 'SELECT * FROM users WHERE id = $1'
         const userval = [req.userId]
-
-
+        console.log(values)
         try {
             let user_resp = await db.query(usertxt, userval)
             if (user_resp.rows.length != 1){
@@ -75,7 +73,36 @@ module.exports = {
             if (resp.rows.length > 1){
                 throw new Error('Internal db error when adding property to db');
             }
+
+            console.log(resp)
             return {...mergeUserAndProperty(resp.rows[0], user_resp.rows[0])};
+        } catch (err) {
+            console.log(err);
+            throw err;
+        }
+    },
+	updateProperty: async (args, req) => {
+    
+        if (!req.isAuth) {
+            throw new Error(global.unAuth);
+        }
+        
+        const text = 'UPDATE property SET info = $1, price = $2, bedrooms = $3, utils = $4, parking = $5, furnished = $6, bathroom = $7, avail_on = $8 WHERE prop_id = $9 AND landlord = $10'
+        const values = [ args.info , args.price , args.bedrooms , args.utils , args.parking , args.furnished , args.bathroom ,args.avail_on, args.prop_id, req.userId]
+        const usertxt = 'SELECT * FROM users WHERE id = $1'
+        const userval = [req.userId]
+		
+        try {
+            let user_resp = await db.query(usertxt, userval)
+            if (user_resp.rows.length != 1){
+                throw new Error('user not found or duplicate users');
+            }
+            let resp = await db.query(text, values)
+            let resp4 = await db.query('SELECT * FROM property WHERE prop_id = $1 AND landlord = $2', [args.prop_id, req.userId])
+			if (resp4.rows.length > 1){
+                throw new Error('getting prop from ');
+            }
+            return {...mergeUserAndProperty(resp4.rows[0], user_resp.rows[0])};
         } catch (err) {
             console.log(err);
             throw err;
@@ -91,6 +118,7 @@ module.exports = {
         const delete_fav = 'DELETE FROM favorites WHERE prop_id = $1'
         const del_values = [args.prop_id]
 
+		console.log("delete start")
         try{
             let resp = await db.query(text, values)
             if(resp.rowCount < 1){
@@ -102,7 +130,9 @@ module.exports = {
             console.log(err);
             throw err;
         }
+		console.log("delete suc")
         return true;
+
     },
     decideProperty: async (args, req) => {
         if (!req.isAuth){
@@ -373,7 +403,61 @@ module.exports = {
             throw err;
         }
     },
-    
+    getOneProperty: async (args,req)=> {
+        if (!req.isAuth){
+            throw new Error(global.unAuth);
+        }
+        const get = 'SELECT * FROM property WHERE prop_id = $1 ORDER BY prop_id'
+        const val = [ args.id]
+
+        try {
+            let resp = await db.query(get, val);
+			if (resp.rowCount < 1){
+				throw new Error("this room does not exist")
+			}
+			if (resp.rowCount > 1){
+				throw new Error("multi-error")
+			}
+            const handled = await handleProp(resp.rows[0])
+			return handled
+        } catch (err) {
+            console.log(err);
+            throw err;
+        }
+	},
+	setPropertyPicInfo: async (args, req) => {
+		if (!req.isAuth){
+            throw new Error(global.unAuth);
+        }
+
+        const get = 'UPDATE property_pic SET info = $1 WHERE prop_id = $2 AND order_num = $3'
+        const val = [ args.info, args.prop_id, args.order_num]
+
+        try {
+            let auth = await db.query('SELECT * FROM property WHERE prop_id = $1 AND landlord = $2', [args.prop_id, req.userId]);
+			if (auth.rowCount != 1){
+				throw new Error("you do not have authorization")
+			}
+
+            let exits = await db.query('SELECT * FROM property_pic WHERE prop_id = $1 AND order_num = $2', [args.prop_id, args.order_num]);
+			if (auth.rowCount != 1){
+				throw new Error("pic does not exist")
+			}
+
+            let resp = await db.query(get, val);
+			if (resp.rowCount < 1){
+				throw new Error("this room does not exist")
+			}
+			if (resp.rowCount > 1){
+				throw new Error("multi-error")
+			}
+			return true
+        } catch (err) {
+            console.log(err);
+            throw err;
+        }
+	}
+	
     
 
     // getProperty: async (args, req) => {

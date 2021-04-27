@@ -90,6 +90,7 @@ module.exports = {
             }
             const hashedPassword = await bcrypt.hash(args.password, 12);
             const text = 'INSERT INTO users(email, password, f_name, l_name, gender, user_type, date_of_birth, profile_pic) VALUES($1, $2, $3, $4, $5, $6, $7, 0) RETURNING *'
+            console.log(args)
             if(args.user_type != 'T' && args.user_type != 'L'){
                 throw new Error("must select tenent or landlord")
             }
@@ -113,6 +114,7 @@ module.exports = {
         }
     },
     login: async (args) => {
+		console.log(args)
         let query = 'SELECT * FROM users WHERE email = $1';
         let res = await db.query(query, [args.email])
 
@@ -120,6 +122,7 @@ module.exports = {
             throw new Error('Internal db error when adding user to db');
         }
         const user = res.rows[0];
+
         if (!user) {
             throw new Error('User does not exist!');
         }
@@ -134,6 +137,7 @@ module.exports = {
             expiresIn: '1h'
         }
         );
+		console.log(token)
         return { userId: user.id, token: token, tokenExpiration: 1, user_type: user.user_type};
         
     }
