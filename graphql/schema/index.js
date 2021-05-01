@@ -76,6 +76,7 @@ type RootQuery {
   getMyProperty(start_index: Int!, end_index: Int): [Property!]
   getMyImages: [Image]!
   getOneProperty(id: ID!): Property!
+  getFilteredProperty(lon: Float!, lat: Float!, rad: Float!, start: Float!, end: Float!): [Property!]
 }
 
 type RootMutation {

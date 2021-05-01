@@ -160,7 +160,7 @@ module.exports = {
             if (resp.rows.length < 1){
                 throw new Error("this property doesn't exist");
             }
-            // later make sure you can't favorite ur own
+            // later make sure you can't favourite ur own
             resp = await db.query(check_query, check_val);
 
             if (resp.rows.length >= 1) {
@@ -425,6 +425,31 @@ module.exports = {
             throw err;
         }
 	},
+
+	getFilteredProperty: async (args, req) => {
+		if (!req.isAuth){
+            throw new Error(global.unAuth);
+        }
+        const get = 'SELECT * FROM property WHERE prop_id = $1 ORDER BY prop_id'
+        const val = [ args.id]
+
+        try {
+            let resp = await db.query(get, val);
+			if (resp.rowCount < 1){
+				throw new Error("this room does not exist")
+			}
+			if (resp.rowCount > 1){
+				throw new Error("multi-error")
+			}
+            const handled = await handleProp(resp.rows[0])
+			return handled
+        } catch (err) {
+            console.log(err);
+            throw err;
+        }		
+		return []
+	}
+	,
 	setPropertyPicInfo: async (args, req) => {
 		if (!req.isAuth){
             throw new Error(global.unAuth);
