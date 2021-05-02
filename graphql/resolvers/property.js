@@ -430,17 +430,22 @@ module.exports = {
 		if (!req.isAuth){
             throw new Error(global.unAuth);
         }
-        const get = 'SELECT * FROM property WHERE prop_id = $1 ORDER BY prop_id'
-        const val = [ args.id]
+		console.log(args)
+		sm_lon = args.lon
+		sm_lat = args.lat
+        const get = 'SELECT * FROM property WHERE (longitude - $1)*(longitude - $1) + (latitude -$2) * (latitude - $2) <= $3'
+        const val = [ args.lon, args.lat, args.rad*args.rad]
 
+
+		//return []
         try {
             let resp = await db.query(get, val);
 			if (resp.rowCount < 1){
 				throw new Error("this room does not exist")
 			}
-			if (resp.rowCount > 1){
-				throw new Error("multi-error")
-			}
+			
+			console.log(resp.rows)
+			return []
             const handled = await handleProp(resp.rows[0])
 			return handled
         } catch (err) {
