@@ -433,26 +433,28 @@ module.exports = {
 		console.log(args)
 		sm_lon = args.lon
 		sm_lat = args.lat
-        const get = 'SELECT * FROM property WHERE (longitude - $1)*(longitude - $1) + (latitude -$2) * (latitude - $2) <= $3'
-        const val = [ args.lon, args.lat, args.rad*args.rad]
+        const get = 'SELECT * FROM property WHERE (longitude - $1)*(longitude - $1) + (latitude -$2) * (latitude - $2) <= $3 and prop_id NOT IN (select prop_id from favorites WHERE user_id = $4)'
+        const val = [ args.lon, args.lat, args.rad*args.rad, req.userId]
 
-
-		//return []
         try {
             let resp = await db.query(get, val);
 			if (resp.rowCount < 1){
 				throw new Error("this room does not exist")
 			}
 			
+			
+
+			resp.rows = resp.rows.slice(args.start_index, args.end_index)
+			
 			console.log(resp.rows)
-			return []
-            const handled = await handleProp(resp.rows[0])
-			return handled
+            for (i = 0; i < resp.rows.length; i++){
+                resp.rows[i] = await handleProp(resp.rows[i]);
+            }
+            return resp.rows
         } catch (err) {
             console.log(err);
             throw err;
         }		
-		return []
 	}
 	,
 	setPropertyPicInfo: async (args, req) => {
